@@ -482,3 +482,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+azure_ssh_key
+azure_ssh_key.pub
+

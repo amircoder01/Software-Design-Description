@@ -36,5 +36,4 @@ jobs:
         echo "📦 Kopierar filer till App Server..."
         scp -P 2223 -r publish/* ${{ secrets.SSH_USERNAME }}@localhost:/home/${{ secrets.SSH_USERNAME }}/myapp/publish
 
-        echo "🚀 Startar om systemd-tjänsten..."
-        ssh -p 2223 ${{ secrets.SSH_USERNAME }}@localhost "sudo systemctl restart myapp.service"
+        echo "🚀 Startar om systemd-tjän

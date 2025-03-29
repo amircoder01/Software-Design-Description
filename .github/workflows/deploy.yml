@@ -1,4 +1,4 @@
-name: Deploy to Azure App VM
+name: Deploy to App Server via Bastion
 
 on:
   push:
@@ -9,33 +9,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: 📥 Hämta koden
       uses: actions/checkout@v3
 
-    - name: Install .NET SDK
+    - name: ⚙️ Installera .NET SDK
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
 
-    - name: Publish project
+    - name: 🛠️ Bygg appen
       run: dotnet publish -c Release -o publish
 
-    - name: Copy files to App Server
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.VM_IP }}
-        username: azureuser
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        source: publish/*
-        target: /home/azureuser/myapp/publish
+    - name: 🔐 Skapa SSH-nyckel
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
 
-    - name: Restart app service
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.VM_IP }}
-        username: azureuser
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        script: |
-          sudo systemctl restart myapp.service
+    - name: 🔁 Tunnel via Bastion och deploy till App Server
+      run: |
+        echo "🌐 Skapar tunnel till App Server via Bastion..."
+        ssh -o StrictHostKeyChecking=no -f -N \
+          -L 2222:${{ secrets.APP_PRIVATE_IP }}:22 \
+          ${{ secrets.SSH_USERNAME }}@${{ secrets.BASTION_HOST }}
+
+        echo "📦 Kopierar filer till App Server..."
+        scp -P 2222 -r publish/* ${{ secrets.SSH_USERNAME }}@localhost:/home/${{ secrets.SSH_USERNAME }}/myapp/publish
+
+        echo "🚀 Startar om systemd-tjänsten..."
+        ssh -p 2222 ${{ secrets.SSH_USERNAME }}@localhost "sudo systemctl restart myapp.service"
